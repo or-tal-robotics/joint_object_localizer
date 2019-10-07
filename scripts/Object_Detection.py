@@ -73,9 +73,12 @@ rospy.wait_for_message('/slam_out_pose',PoseStamped)
 SSD_sub = rospy.Subscriber('/im_info',SSD_Outputs,SSD_callback,queue_size=1)
 rospy.wait_for_message('/im_info',SSD_Outputs)
 
+r = rospy.Rate(5)
+
 while not rospy.is_shutdown():
-    
-    if SSD_info.outputs[0].cls == -1:
+    r.sleep()
+    data = SSD_info
+    if data.outputs[0].cls == -1:
         Theta_list = OG_List()
         Theta_list.object_list = []
         Theta_list_pub.publish(Theta_list)
@@ -96,12 +99,12 @@ while not rospy.is_shutdown():
     # In case there is no object that has been detected:
     
     
-    for ii in range (0,len(SSD_info.outputs)):
+    for ii in range (0,len(data.outputs)):
         Theta_Object = Object_Geometry()
         # Getting the info from the camera:
-        x_min_new = SSD_info.outputs[ii].x_min 
-        x_max_new = SSD_info.outputs[ii].x_max
-        cls_num = SSD_info.outputs[ii].cls
+        x_min_new = data.outputs[ii].x_min 
+        x_max_new = data.outputs[ii].x_max
+        cls_num = data.outputs[ii].cls
 
         
         # Theta from camera:
@@ -162,8 +165,9 @@ while not rospy.is_shutdown():
             circle_minimized_values = differential_evolution(probability_for_can,bounds \
                 , maxiter = 100,  popsize=15, tol=0.00001)
 
+            # Entering the found data:
             v0 = New_Ce_array(circle_minimized_values.x[0],circle_minimized_values.x[1],x_R,y_R,yaw)
-            Theta_Object.probabilities = SSD_info.outputs[ii].probability_distribution
+            Theta_Object.probabilities = data.outputs[ii].probability_distribution
             Theta_Object.x_center = v0[0]
             Theta_Object.y_center = v0[1]
             Theta_Object.r = circle_minimized_values.x[2]
@@ -192,7 +196,8 @@ while not rospy.is_shutdown():
             # DE angoritm:
             rectangle_minimized_values = differential_evolution(iterable_function,bounds_R \
                 , maxiter = 100,  popsize=15, tol=0.00001)
-            Theta_Object.probabilities = SSD_info.outputs[ii].probability_distribution
+            # Entering the found data:
+            Theta_Object.probabilities = data.outputs[ii].probability_distribution
             Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(rectangle_minimized_values.x[0] ,rectangle_minimized_values.x[1],x_R,y_R,yaw)
             Theta_Object.a = rectangle_minimized_values.x[3]
             Theta_Object.b = rectangle_minimized_values.x[4]
@@ -218,8 +223,8 @@ while not rospy.is_shutdown():
             # DE angoritm:
             elliptical_minimized_values = differential_evolution(iterable_function,bounds_E \
                 , maxiter = 100,  popsize=15, tol=0.00001)
-            
-            Theta_Object.probabilities = SSD_info.outputs[ii].probability_distribution
+            # Entering the found data:
+            Theta_Object.probabilities = data.outputs[ii].probability_distribution
             Theta_Object.x_center , Theta_Object.y_center = New_Ce_array(elliptical_minimized_values.x[0] ,elliptical_minimized_values.x[1],x_R,y_R,yaw)
             Theta_Object.a = elliptical_minimized_values.x[3]
             Theta_Object.b = elliptical_minimized_values.x[4]
